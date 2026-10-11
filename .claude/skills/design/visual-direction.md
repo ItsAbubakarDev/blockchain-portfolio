@@ -90,6 +90,22 @@ engineering lead) through **progressive disclosure, never duplication or a mode 
 - **Floating WhatsApp + email** bottom-right, requested by the owner. Kept compact and hidden over the
   hero and the Contact section/footer so it never covers the opening sentence or form fields.
 - **Native cursor.** The custom cursor ring/labels and the magnetic buttons were removed for simplicity.
+- **Work = named case studies** (SILPRE, SWAP21, the chain split, forks, wallets, marketplace), each with
+  what-it-is → numbers → problem → what I built → result → stack. Only figures the owner has stated:
+  SILPRE's $600k / $340k / $40k. No other project carries metrics.
+- **Live products are buttons,** not text links: `Visit user.silpre.net ↗` / `Visit swap21.com ↗`.
+- **Proof:** real interface screenshots in `public/shots/` with a lightbox. Never publish a screenshot
+  containing a third party's data — check every one before it enters `public/`.
+- **Contact form posts to Formspree** (`site.formspreeId`) through `/api/contact`, which keeps the site's own
+  validation and error states.
+- **OVEX and MicroSlush are both current;** MicroSlush is labelled "Concurrent contract".
+- **Section seams:** `.section + .section` halves the top padding, so two stacked sections don't read as an
+  empty band.
+- **Case-study pages** at `/work/<id>` for studies with `detail: true` (SILPRE, SWAP21). Same design
+  language, one `h1` per page, attribution beside the title, gallery and figure full-width.
+- **Attribution is required** on employer work: name the company, role, period, and what part was
+  delivered, so a reader never assumes Muhammad owns the product. Never present client or employer
+  products as personal projects.
 
 ## 6. Voice & truth rules (non-negotiable)
 

@@ -11,6 +11,41 @@ import { gsap, ScrollTrigger } from "@/lib/animations/gsap";
  * Everything is reversible (scrubbed), and nothing runs under reduced motion.
  */
 export default function ScrollAnimations() {
+  // A stacked case study only sticks if its content fits the panel; a taller one would trap its
+  // own last lines behind the next card, so it scrolls normally instead ([data-overflow]).
+  useEffect(() => {
+    const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-stack]"));
+    const measure = () => {
+      let changed = false;
+      for (const card of cards) {
+        const text = card.querySelector<HTMLElement>(".showcase__text");
+        const inner = card.querySelector<HTMLElement>("[data-stack-inner]");
+        if (!text || !inner) continue;
+        // Measure in the sticky (fixed-height) state, so an unstuck card can stick again. The text
+        // column grows with its content; the fixed-height panel around it is what would clip.
+        const was = card.hasAttribute("data-overflow");
+        card.removeAttribute("data-overflow");
+        const fixed = getComputedStyle(card).position === "sticky";
+        const over = fixed && text.scrollHeight > inner.clientHeight + 1;
+        if (over) card.setAttribute("data-overflow", "");
+        if (over !== was) changed = true;
+      }
+      if (changed) ScrollTrigger.refresh();
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+    let raf = 0;
+    const onResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(measure);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   // Opening or closing a <details> layer changes the page height under every trigger below it.
   useEffect(() => {
     let raf = 0;

@@ -1,4 +1,5 @@
 import { roles } from "@/data/experience";
+import { projects } from "@/data/projects";
 import { formatMonth, isoMonth } from "@/lib/utils/dates";
 import SectionHead, { Statement } from "@/components/ui/SectionHead";
 import Timeline from "./experience/Timeline";
@@ -22,7 +23,7 @@ export default function Experience() {
         </div>
 
         <div className="mt-16 lg:mt-28">
-          <Timeline roles={roles} now={now} />
+          <Timeline roles={roles} now={now} studyTitles={Object.fromEntries(projects.map((p) => [p.id, p.title]))} />
         </div>
       </div>
     </section>

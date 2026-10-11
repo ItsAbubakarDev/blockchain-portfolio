@@ -756,6 +756,13 @@ html[data-scene="live"] .scene-only {
   color: var(--color-bone);
 }
 
+/* Two sections in a row would otherwise stack two full paddings and read as an empty band between
+   them. The seam keeps one full padding plus a half. Unlayered on purpose: it must beat the
+   `.section` rule in @layer components. */
+.section + .section {
+  padding-top: calc(var(--section-y) * 0.5);
+}
+
 /* ---------------------------------------------------------- Sections */
 
 /* About — focus areas */
@@ -805,19 +812,20 @@ html[data-scene="live"] .scene-only {
   overflow: hidden;
   transform-origin: 50% 0%;
 }
+/* Phones: the argument (name, plain sentence, numbers) comes first, the figure after it. */
 .showcase__text {
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
-  order: 2;
+  order: 1;
 }
 .showcase__visual {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-bottom: 1px solid var(--color-rule);
+  border-top: 1px solid var(--color-rule);
   background: var(--color-ink-2);
-  order: 1;
+  order: 2;
 }
 /* The canvas box carries the proportions, so captions and the result never squeeze it. */
 .showcase__canvas {
@@ -832,6 +840,9 @@ html[data-scene="live"] .scene-only {
   gap: 0.35rem;
   padding-top: 0.875rem;
   border-top: 1px solid var(--color-rule);
+}
+.showcase__facts .facts__result {
+  color: var(--color-bone);
 }
 .showcase__facts dd {
   color: var(--color-mute);
@@ -874,7 +885,7 @@ html[data-scene="live"] .scene-only {
   .showcase__visual {
     order: 2;
     min-height: 34rem;
-    border-bottom: 0;
+    border-top: 0;
     border-left: 1px solid var(--color-rule);
   }
   .showcase__canvas {
@@ -903,24 +914,72 @@ html[data-scene="live"] .scene-only {
   }
   /* An opened "Under the hood" layer outgrows the fixed panel: the panel stops sticking and grows
      to fit, instead of clipping or scrolling inside itself. */
-  .showcase:has(.depth[open]) {
+  .showcase:is(:has(.depth[open]), [data-overflow]) {
     position: relative;
     top: auto;
     height: auto;
     max-height: none;
   }
-  .showcase:has(.depth[open]) .showcase__inner {
+  .showcase:is(:has(.depth[open]), [data-overflow]) .showcase__inner {
     height: auto;
+    /* clip, not hidden: hidden makes a scroll container and breaks the sticky figure below. */
+    overflow: clip;
   }
-  .showcase:has(.depth[open]) .showcase__visual {
+  .showcase:is(:has(.depth[open]), [data-overflow]) .showcase__visual {
     min-height: 34rem;
+  }
+  /* In a tall panel the drawing stays in view beside the text instead of centring in the column. */
+  .showcase:is(:has(.depth[open]), [data-overflow]) .showcase__canvas {
+    position: sticky;
+    top: calc(var(--nav-h) + 12px);
+    flex: none;
+    height: min(calc(100svh - var(--nav-h) - 48px), 40rem);
   }
 }
 /* Never recede a card the reader has opened (overrides the scrubbed stacking transform). */
-.showcase:has(.depth[open]) [data-stack-inner] {
+.showcase:is(:has(.depth[open]), [data-overflow]) [data-stack-inner] {
   transform: none !important;
   opacity: 1 !important;
   filter: none !important;
+}
+
+/* Work — headline numbers (only figures the owner has stated) */
+.metrics {
+  display: grid;
+  gap: 0.9rem;
+  border-top: 1px solid var(--color-rule);
+  padding-top: 1rem;
+}
+.metrics > div {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, auto) minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+}
+.metrics__value {
+  font-size: clamp(1.75rem, 1.3rem + 1.4vw, 2.5rem);
+  font-weight: 600;
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-bone);
+}
+.metrics__label {
+  font-size: var(--fs-small);
+  line-height: 1.4;
+  color: var(--color-mute);
+}
+
+/* Development-only marker for content the owner still has to supply. */
+.dev-gap {
+  padding: 0.6rem 0.8rem;
+  border: 1px dashed var(--color-signal);
+  color: var(--color-signal);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: 0.04em;
 }
 
 /* Experience — timeline */
@@ -1002,6 +1061,34 @@ html[data-scene="live"] .scene-only {
   height: 1em;
 }
 
+
+
+/* Header résumé: preview (label) + download (arrow), split by a hairline. */
+.nav-res {
+  align-items: stretch;
+  border: 1px solid rgb(236 231 220 / 0.3);
+  border-radius: 2px;
+}
+.nav-res__view,
+.nav-res__dl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding-inline: 0.75rem;
+  color: var(--color-bone);
+  transition: background-color var(--dur-micro) var(--ease-snap);
+}
+.nav-res__dl {
+  border-left: 1px solid rgb(236 231 220 / 0.3);
+  padding-inline: 0.6rem;
+}
+@media (hover: hover) and (pointer: fine) {
+  .nav-res__view:hover,
+  .nav-res__dl:hover {
+    background: rgb(236 231 220 / 0.09);
+  }
+}
 
 /* ------------------------------------------------- Progressive disclosure */
 
@@ -1287,8 +1374,10 @@ html:not(.js) .term-pop {
     transform var(--dur-short) var(--ease-snap),
     visibility 0s;
 }
-/* Hidden (and out of the tab order) behind the loader, over the hero, and near Contact. */
+/* Hidden (and out of the tab order) behind the loader, over the hero, near Contact, and while a
+   lightbox is open — the dialog is in the top layer, so the buttons would otherwise float over it. */
 .fab[data-away],
+html:has(dialog.lb[open]) .fab,
 .js:not(.is-ready) .fab {
   opacity: 0;
   visibility: hidden;
@@ -1346,23 +1435,312 @@ html:not(.js) .term-pop {
   .fab__btn:hover .fab__label {
     opacity: 1;
   }
-  /* Research rows: the title underline draws when the whole row is hovered. */
-  .research-row:hover .link-draw::after {
-    transform: scaleX(1);
-    transform-origin: left center;
-  }
-  .research-row:hover .arrow-ne {
-    transform: translate(3px, -3px);
-  }
-}
-.research-row:focus-visible .link-draw::after {
-  transform: scaleX(1);
 }
 /* Keep the last lines of the page clear of the buttons on phones. */
 @media (max-width: 767px) {
   footer {
     padding-bottom: 72px;
   }
+}
+
+
+
+/* ------------------------------------------------------- Case study pages */
+
+/* A case study starts under the fixed header, not behind it. */
+.cs {
+  padding-top: calc(var(--nav-h) + var(--section-y) * 0.5);
+}
+
+.delivered {
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1px solid var(--color-rule);
+  border-left: 2px solid var(--color-signal);
+  border-radius: 2px;
+  background: var(--color-ink-raised);
+}
+.delivered--compact {
+  padding: 0;
+  border: 0;
+  border-left: 2px solid var(--color-signal);
+  padding-left: 0.75rem;
+  background: none;
+}
+.delivered__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--color-mute);
+}
+.delivered__role {
+  margin-top: 0.4rem;
+  color: var(--color-mute);
+}
+.delivered__note {
+  margin-top: 0.75rem;
+  max-width: 44ch;
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  color: var(--color-bone);
+}
+
+.cs-metrics {
+  display: grid;
+  gap: 1.5rem;
+  border-top: 1px solid var(--color-rule);
+  padding-top: 1.5rem;
+}
+.cs-metrics > div {
+  display: grid;
+  gap: 0.4rem;
+}
+.cs-metrics__value {
+  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 5rem);
+  font-weight: 600;
+  font-stretch: 72%;
+  font-variation-settings: "wdth" 72;
+  line-height: 0.9;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-bone);
+}
+.cs-metrics__label {
+  max-width: 30ch;
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  color: var(--color-mute);
+}
+@media (min-width: 768px) {
+  .cs-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--gutter);
+  }
+}
+
+/* The figure gets its own full-width frame on a case-study page. */
+.cs-figure .showcase__visual {
+  border: 0;
+  min-height: 0;
+}
+.cs-figure .showcase__canvas {
+  aspect-ratio: 4 / 4.6;
+}
+@media (min-width: 560px) {
+  .cs-figure .showcase__canvas {
+    aspect-ratio: 16 / 10;
+  }
+}
+@media (min-width: 1024px) {
+  .cs-figure .showcase__canvas {
+    aspect-ratio: 21 / 9;
+  }
+}
+
+/* Card link into a case study, from the home-page showcase. */
+.cs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  padding: 0 1.1rem;
+  border: 1px solid rgb(236 231 220 / 0.3);
+  border-radius: 2px;
+  color: var(--color-bone);
+  transition:
+    background-color var(--dur-micro) var(--ease-snap),
+    border-color var(--dur-micro) var(--ease-snap);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cs-link:hover {
+    border-color: var(--color-bone);
+    background: rgb(236 231 220 / 0.09);
+  }
+}
+
+/* ------------------------------------------------------------ Screenshots */
+
+.gal + .gal {
+  margin-top: 1.5rem;
+}
+.gal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-rule);
+}
+.gal__btn {
+  display: inline-flex;
+  min-height: 36px;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-rule);
+  border-radius: 2px;
+  color: var(--color-bone);
+  transition:
+    background-color var(--dur-micro) var(--ease-snap),
+    border-color var(--dur-micro) var(--ease-snap),
+    opacity var(--dur-micro) var(--ease-snap);
+}
+.gal__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+@media (hover: hover) and (pointer: fine) {
+  .gal__btn:not(:disabled):hover {
+    border-color: var(--color-bone);
+    background: rgb(236 231 220 / 0.09);
+  }
+}
+
+/* The track is a real scroll container: swipe, trackpad and arrow keys all work natively. */
+.gal__track {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-bottom: 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(236 231 220 / 0.22) transparent;
+}
+.gal__track::-webkit-scrollbar {
+  height: 6px;
+}
+.gal__track::-webkit-scrollbar-thumb {
+  background: rgb(236 231 220 / 0.22);
+  border-radius: 999px;
+}
+.gal__track:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 4px;
+}
+
+.gal__slide {
+  position: relative;
+  flex: none;
+  /* aspect-ratio is set per slide; height drives the width so mixed shapes sit on one baseline. */
+  height: clamp(9.5rem, 7rem + 14vw, 15rem);
+  scroll-snap-align: start;
+  border: 1px solid var(--color-rule);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--color-ink-2);
+  cursor: zoom-in;
+  transition: border-color var(--dur-micro) var(--ease-snap);
+}
+.gal__img {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+.gal__cap {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  background: rgb(11 11 10 / 0.82);
+  color: var(--color-bone);
+  text-align: left;
+}
+/* Narrow mobile-shot slides can't fit a full label — truncate rather than wrap over the image. */
+.gal__cap__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gal__zoom {
+  flex: none;
+  color: var(--color-mute);
+}
+@media (hover: hover) and (pointer: fine) {
+  .gal__slide:hover {
+    border-color: rgb(236 231 220 / 0.45);
+  }
+}
+.gal__slide:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 3px;
+}
+
+/* Lightbox */
+.lb {
+  width: min(96vw, 1400px);
+  max-width: none;
+  max-height: 94svh;
+  padding: 0;
+  border: 1px solid rgb(236 231 220 / 0.22);
+  border-radius: 2px;
+  background: var(--color-ink-2);
+  color: var(--color-bone);
+  overflow: hidden;
+}
+.lb::backdrop {
+  background: rgb(11 11 10 / 0.88);
+}
+.lb__inner {
+  display: flex;
+  max-height: 94svh;
+  flex-direction: column;
+}
+.lb__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.6rem 0.6rem 1rem;
+  border-bottom: 1px solid var(--color-rule);
+}
+.lb__btn {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--color-bone);
+  font-size: 1rem;
+  transition: background-color var(--dur-micro) var(--ease-snap);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lb__btn:hover {
+    background: rgb(236 231 220 / 0.1);
+  }
+}
+.lb__stage {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-ink);
+}
+.lb__img {
+  display: block;
+  max-height: 100%;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.lb__alt {
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--color-rule);
+  color: var(--color-mute);
+  font-size: var(--fs-small);
+  line-height: 1.5;
 }
 
 /* ------------------------------------------------------------- Texture */
@@ -1430,6 +1808,12 @@ html:not(.js) .term-pop {
   .contact-pulse {
     animation: none;
   }
+  .nav-res__view,
+  .nav-res__dl,
+  .gal__btn,
+  .gal__slide,
+  .cs-link,
+  .lb__btn,
   .fab,
   .fab[data-away],
   .fab__btn,

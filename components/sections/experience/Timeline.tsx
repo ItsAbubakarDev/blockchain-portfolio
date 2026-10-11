@@ -8,13 +8,13 @@ import Annotated from "@/components/ui/Annotated";
 import Depth from "@/components/ui/Depth";
 import YearRoll from "./YearRoll";
 
-type Props = { roles: Role[]; now: string };
+type Props = { roles: Role[]; now: string; /** Case-study id → title, for the cross-links. */ studyTitles: Record<string, string> };
 
 /**
  * Roles in reverse order with a progress line that fills as you read. On desktop a large year
  * stays pinned beside them and rolls to the active role's start year.
  */
-export default function Timeline({ roles, now }: Props) {
+export default function Timeline({ roles, now, studyTitles }: Props) {
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLOListElement>(null);
   const fillRef = useRef<HTMLSpanElement>(null);
@@ -86,6 +86,12 @@ export default function Timeline({ roles, now }: Props) {
                 {role.end ? <time dateTime={role.end}>{formatMonth(role.end)}</time> : <span>Present</span>}
                 <span aria-hidden="true">·</span>
                 <span>{formatSpan(months)}</span>
+                {role.concurrent ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="text-bone">Concurrent contract</span>
+                  </>
+                ) : null}
                 <span className="year-inline lg:hidden" aria-hidden="true">
                   {role.start.slice(0, 4)}
                 </span>
@@ -109,6 +115,22 @@ export default function Timeline({ roles, now }: Props) {
                     ))}
                   </ul>
                 </Depth>
+              ) : null}
+              {role.caseStudies?.length ? (
+                <p className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  <span className="t-label text-mute">Case studies</span>
+                  {role.caseStudies.map((id) => {
+                    const title = studyTitles[id];
+                    return title ? (
+                      <a key={id} href={`#project-${id}`} className="group inline-flex min-h-9 items-baseline gap-1.5 text-bone">
+                        <span className="link-u">{title}</span>
+                        <span aria-hidden="true" className="arrow arrow-r text-mute">
+                          ↑
+                        </span>
+                      </a>
+                    ) : null;
+                  })}
+                </p>
               ) : null}
               <p className="t-label mt-5 text-bone">{role.focus.join(" · ")}</p>
               <ul className="mt-5 flex flex-wrap gap-2" aria-label="Stack">

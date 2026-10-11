@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { navItems, site } from "@/data/site";
 import { getLenis, scrollToId } from "@/lib/animations/scroll";
 import type { ContactLinks } from "@/lib/contact-links";
@@ -10,6 +11,10 @@ import LocalTime from "./LocalTime";
 const WATCHED = ["top", ...navItems.map((n) => n.id)];
 
 export default function Navigation({ contact }: { contact: ContactLinks }) {
+  const pathname = usePathname();
+  // On a case-study page the section anchors live on the home page, so they need the path.
+  const home = pathname === "/";
+  const to = (id: string) => (home ? `#${id}` : `/#${id}`);
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,6 +42,7 @@ export default function Navigation({ contact }: { contact: ContactLinks }) {
 
   // Active section: whichever section crosses the middle band of the viewport.
   useEffect(() => {
+    if (!home) return;
     const sections = WATCHED.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     const io = new IntersectionObserver(
       (entries) => {
@@ -50,7 +56,7 @@ export default function Navigation({ contact }: { contact: ContactLinks }) {
     );
     sections.forEach((s) => io.observe(s));
     return () => io.disconnect();
-  }, []);
+  }, [home]);
 
   // Mobile menu: inert background, Esc to close, focus management, scroll lock.
   useEffect(() => {
@@ -97,7 +103,7 @@ export default function Navigation({ contact }: { contact: ContactLinks }) {
           }`}
         />
         <div className="wrap relative flex h-[var(--nav-h)] items-center justify-between gap-6">
-          <a href="#top" className="nav-mark flex min-h-11 items-center gap-2.5 text-bone" data-intro style={{ "--d": "700ms" } as React.CSSProperties}>
+          <a href={to("top")} className="nav-mark flex min-h-11 items-center gap-2.5 text-bone" data-intro style={{ "--d": "700ms" } as React.CSSProperties}>
             <span className="sq" aria-hidden="true" />
             <span>
               Abubakar<span className="sr-only"> — back to top</span>
@@ -112,15 +118,15 @@ export default function Navigation({ contact }: { contact: ContactLinks }) {
                 return (
                   <li key={item.id}>
                     <a
-                      href={`#${item.id}`}
-                      aria-current={isActive ? "true" : undefined}
+                      href={to(item.id)}
+                      aria-current={isActive && home ? "true" : undefined}
                       className="t-label group flex min-h-11 items-center gap-2"
                     >
                       <span
                         aria-hidden="true"
                         className={`sq transition-opacity duration-200 ${isActive ? "opacity-100" : "opacity-0"}`}
                       />
-                      <span aria-hidden="true" className="text-faint">
+                      <span aria-hidden="true" className="hidden text-faint xl:inline">
                         {item.index}
                       </span>
                       <span
@@ -137,17 +143,33 @@ export default function Navigation({ contact }: { contact: ContactLinks }) {
             </ul>
           </nav>
 
-          <p className="t-label hidden items-center gap-2 text-mute xl:flex" data-intro style={{ "--d": "900ms" } as React.CSSProperties}>
-            <span>ISB</span>
-            <LocalTime className="text-bone" />
-            <span>{site.location.utcOffset}</span>
-          </p>
-
-          {/* The one conversion action that is on screen at every scroll position. */}
-          <div className="flex items-center gap-3" data-intro style={{ "--d": "850ms" } as React.CSSProperties}>
+          {/* Conversion actions, on screen at every scroll position. */}
+          <div className="flex items-center gap-2 lg:gap-3" data-intro style={{ "--d": "850ms" } as React.CSSProperties}>
+            {contact.resume ? (
+              <span className="nav-res hidden lg:inline-flex">
+                <a href={contact.resume.href} target="_blank" rel="noopener noreferrer" className="nav-res__view t-label">
+                  Résumé
+                  <span aria-hidden="true" className="arrow arrow-ne">
+                    ↗
+                  </span>
+                  <span className="sr-only">(PDF preview, opens in new tab)</span>
+                </a>
+                <a
+                  href={contact.resume.href}
+                  download={contact.resume.download}
+                  className="nav-res__dl t-label"
+                  title={`Download résumé (PDF, ${contact.resume.size})`}
+                >
+                  <span aria-hidden="true" className="arrow arrow-d">
+                    ↓
+                  </span>
+                  <span className="sr-only">Download résumé (PDF, {contact.resume.size})</span>
+                </a>
+              </span>
+            ) : null}
             <a
-              href="#contact"
-              aria-current={active === "contact" ? "true" : undefined}
+              href={to("contact")}
+              aria-current={active === "contact" && home ? "true" : undefined}
               className="nav-cta t-label inline-flex min-h-11 items-center gap-2 border border-[rgb(236_231_220/0.3)] px-3 text-bone transition-colors duration-200 hover-fine:hover:border-bone"
             >
               <span className="sq" aria-hidden="true" />
@@ -200,8 +222,8 @@ export default function Navigation({ contact }: { contact: ContactLinks }) {
             {navItems.map((item, i) => (
               <li key={item.id} className="border-b border-rule">
                 <a
-                  href={`#${item.id}`}
-                  onClick={(e) => onMenuLink(e, item.id)}
+                  href={to(item.id)}
+                  onClick={(e) => home && onMenuLink(e, item.id)}
                   className="flex items-baseline justify-between py-4"
                   style={{ animation: menuOpen ? `fade-up 560ms var(--ease-out) ${i * 50}ms both` : undefined }}
                 >

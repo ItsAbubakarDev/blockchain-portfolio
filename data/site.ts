@@ -6,6 +6,11 @@ export const site = {
   positioning: "Lead Blockchain Engineer · Exchange Infrastructure & L1 Forks",
   url: "https://itsabubakar.me",
   email: "abubakarrashraf20@gmail.com",
+  /**
+   * Formspree form id — the contact form posts here via /api/contact.
+   * Formspree delivers to the address on the account that owns the form (formspree.io → Forms).
+   */
+  formspreeId: "xnpjvnbv",
   /** WhatsApp in international format without "+" (wa.me links), and as shown to people. */
   whatsapp: {
     number: "923118409238",

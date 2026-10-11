@@ -38,9 +38,12 @@ export default function SmoothScroll() {
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const anchor = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href^="#"]');
-      if (!anchor) return;
-      const id = anchor.getAttribute("href")!.slice(1);
+      const anchor = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href*="#"]');
+      if (!anchor || anchor.target === "_blank") return;
+      // Same-document hash links only: "#work" here, and "/#work" when already on "/".
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) return;
+      const id = url.hash.slice(1);
       if (!id || (id !== "top" && !document.getElementById(id))) return;
       event.preventDefault();
       // The skip link should jump, not glide.

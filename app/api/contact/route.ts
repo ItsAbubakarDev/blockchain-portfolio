@@ -2,17 +2,16 @@ import { readFields, TOPICS, validate, type ContactResponse } from "@/lib/contac
 import { site } from "@/data/site";
 
 /**
- * POST /api/contact — validates a contact message and delivers it by email through Resend.
+ * POST /api/contact — validates a contact message and delivers it through Formspree.
  *
- * Configure (see .env.example):
- *   RESEND_API_KEY      API key from resend.com (Sending access is enough)
- *   CONTACT_TO_EMAIL    the inbox messages are delivered to
- *   CONTACT_FROM_EMAIL  sender on a domain verified in Resend, e.g. "Portfolio <contact@itsabubakar.me>"
+ * The form id lives in `site.formspreeId` (data/site.ts). Nothing else to configure: Formspree
+ * emails the submission to the address on the account that owns the form. This route sits in front
+ * of Formspree so the site keeps its own validation, spam checks and honest error states, and so
+ * the form still works with JavaScript disabled.
  *
  * Answers JSON when the client asks for it (the JS form); otherwise (no-JS form post) redirects
  * back to /#contact-sent or /#contact-failed. Spam: honeypot, minimum fill time, per-IP rate
- * limit, link count, same-origin check. Retries of the same submission are de-duplicated with a
- * per-submission idempotency key, so a double-click or a flaky network never sends twice.
+ * limit, link count, same-origin check.
  */
 
 const WINDOW_MS = 10 * 60 * 1000;
@@ -21,7 +20,7 @@ const MIN_FILL_MS = 3000;
 const MAX_LINKS = 4;
 
 // Best effort: per server instance. Serverless platforms run several instances, so treat this as
-// a speed bump, not a guarantee (see the README for upgrading to a shared store if spam gets through).
+// a speed bump, not a guarantee.
 const hits = new Map<string, number[]>();
 
 function rateLimited(ip: string, now: number) {
@@ -66,7 +65,7 @@ export async function POST(req: Request) {
   }
 
   // Honeypot: invisible to people (and to screen readers); bots fill every field. Answer as if
-  // it worked so the bot learns nothing — no email is sent.
+  // it worked so the bot learns nothing — nothing is sent.
   if (typeof data.get("website") === "string" && (data.get("website") as string).trim() !== "") {
     return reply({ ok: true }, 200);
   }
@@ -101,11 +100,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const key = process.env.RESEND_API_KEY;
-  const to = process.env.CONTACT_TO_EMAIL;
-  const from = process.env.CONTACT_FROM_EMAIL;
-  if (!key || !to || !from) {
-    console.error("[contact] Not configured: set RESEND_API_KEY, CONTACT_TO_EMAIL and CONTACT_FROM_EMAIL.");
+  const formId = site.formspreeId.trim();
+  if (!formId) {
+    console.error("[contact] Not configured: set formspreeId in data/site.ts.");
     return reply(
       {
         ok: false,
@@ -117,43 +114,32 @@ export async function POST(req: Request) {
   }
 
   const topic = TOPICS.find((t) => t.id === fields.topic)?.label ?? "Something else";
-  const text = [
-    `From:    ${fields.name} <${fields.email}>`,
-    fields.company ? `Company: ${fields.company}` : null,
-    `About:   ${topic}`,
-    "",
-    fields.message,
-    "",
-    "—",
-    `Sent from the contact form on ${site.url} at ${new Date(now).toISOString()}. Reply to answer ${fields.name} directly.`,
-  ]
-    .filter((l) => l !== null)
-    .join("\n");
-
   const sid = data.get("sid");
+
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetch(`https://formspree.io/f/${formId}`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        ...(typeof sid === "string" && /^[\w-]{8,64}$/.test(sid) ? { "Idempotency-Key": `contact-${sid}` } : {}),
-      },
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        from,
-        to: [to],
-        reply_to: fields.email,
-        subject: `Portfolio — ${topic}: ${fields.name}${fields.company ? ` (${fields.company})` : ""}`,
-        text,
+        // `email` / `_replyto` make Formspree set reply-to to the sender.
+        name: fields.name,
+        email: fields.email,
+        _replyto: fields.email,
+        _subject: `Portfolio — ${topic}: ${fields.name}${fields.company ? ` (${fields.company})` : ""}`,
+        company: fields.company || "—",
+        about: topic,
+        message: fields.message,
+        sent_from: site.url,
+        submission_id: typeof sid === "string" && /^[\w-]{8,64}$/.test(sid) ? sid : "—",
       }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
-      console.error("[contact] Resend rejected the message:", res.status, await res.text().catch(() => ""));
-      throw new Error(`Resend ${res.status}`);
+      console.error("[contact] Formspree rejected the message:", res.status, await res.text().catch(() => ""));
+      throw new Error(`Formspree ${res.status}`);
     }
   } catch (err) {
-    if (!(err instanceof Error && err.message.startsWith("Resend"))) console.error("[contact] Delivery failed:", err);
+    if (!(err instanceof Error && err.message.startsWith("Formspree"))) console.error("[contact] Delivery failed:", err);
     return reply(
       {
         ok: false,

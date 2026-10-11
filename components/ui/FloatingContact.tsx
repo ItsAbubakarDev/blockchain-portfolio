@@ -5,20 +5,19 @@ import { site } from "@/data/site";
 import { mailtoUrl, whatsappUrl } from "@/lib/contact-urls";
 
 /**
- * WhatsApp + email, pinned bottom-right. Compact and inside the safe area. Steps aside while most of
- * the hero is on screen (it has its own actions, and on phones the buttons would cover the opening
- * sentence) and while the Contact section or footer is (same routes there, and on phones the buttons
- * would sit over form fields being typed into).
+ * WhatsApp + email, pinned bottom-right. Compact and inside the safe area. Stays out of the way on
+ * the first screenful of any page — the hero and a case-study title both carry their own actions,
+ * and on phones the buttons would cover the opening lines — and again over the Contact section or
+ * footer, where the same routes are already on screen beside form fields being typed into.
  */
 export default function FloatingContact() {
   const [away, setAway] = useState(true);
 
   useEffect(() => {
-    const hero = document.getElementById("top");
     const targets = [document.getElementById("contact"), document.querySelector("footer")].filter(Boolean) as Element[];
     const visible = new Set<Element>();
-    let heroShowing = true;
-    const update = () => setAway(heroShowing || visible.size > 0);
+    let atTop = true;
+    const update = () => setAway(atTop || visible.size > 0);
 
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
@@ -29,20 +28,25 @@ export default function FloatingContact() {
     });
     targets.forEach((t) => io.observe(t));
 
-    const heroIo = new IntersectionObserver(
-      ([e]) => {
-        heroShowing = e.intersectionRatio >= 0.5;
-        update();
-      },
-      { threshold: [0, 0.5, 1] },
-    );
-    if (hero) heroIo.observe(hero);
-    else heroShowing = false;
-    update();
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const next = window.scrollY < window.innerHeight * 0.6;
+        if (next !== atTop) {
+          atTop = next;
+          update();
+        }
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
       io.disconnect();
-      heroIo.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
     };
   }, []);
 

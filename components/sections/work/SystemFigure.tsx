@@ -1,40 +1,40 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import type { Project } from "@/data/projects";
+import type { Diagram } from "@/data/projects";
 import { useReducedMotion } from "@/lib/utils/hooks";
 import ArchitectureDiagram from "./ArchitectureDiagram";
 
 type Props = {
   figure: string;
-  caption: string;
-  diagram?: NonNullable<Project["diagram"]>;
-  /** Nodes highlighted in the architecture view (the "architecture" step's focus). */
-  focus: string[];
-  result?: string;
-  children: ReactNode;
+  /** A live simulation or a concept drawing, with what it shows. */
+  primary?: { node: ReactNode; caption: string; kind: "Simulation" | "Concept" };
+  diagram?: Diagram;
 };
 
 /**
- * The right half of a showcase: a live simulation of the system, or its exact architecture
- * drawing (an accessible SVG with the flow described in text). The hidden view is display:none,
- * so its animation loop pauses.
+ * The right half of a case study: a live simulation or concept drawing, and/or the system's
+ * architecture (an accessible SVG with the flow described in text). With both, a toggle switches
+ * between them; the hidden view is display:none, so its animation loop pauses.
  */
-export default function SystemFigure({ figure, caption, diagram, focus, result, children }: Props) {
-  const [view, setView] = useState<"sim" | "arch">("sim");
+export default function SystemFigure({ figure, primary, diagram }: Props) {
+  const [view, setView] = useState<"primary" | "arch">(primary ? "primary" : "arch");
   const reduced = useReducedMotion();
+  const focus = diagram ? (diagram.focus ?? diagram.nodes.map((n) => n.id)) : [];
+  const both = !!primary && !!diagram;
+  const caption = view === "primary" ? primary?.caption : diagram?.caption;
 
   return (
     <figure className="showcase__visual">
       <figcaption className="t-label flex items-center justify-between gap-4 border-b border-rule px-5 py-3 text-mute">
         <span className="min-w-0">
-          <span className="text-bone">Fig. {figure}</span> — {view === "sim" ? caption : diagram?.caption}
+          <span className="text-bone">Fig. {figure}</span> — {caption}
         </span>
-        {diagram ? (
+        {both ? (
           <span className="flex shrink-0 items-center gap-1" role="group" aria-label={`Figure ${figure} view`}>
             {(
               [
-                ["sim", "Simulation"],
+                ["primary", primary!.kind],
                 ["arch", "Architecture"],
               ] as const
             ).map(([id, label]) => (
@@ -45,16 +45,20 @@ export default function SystemFigure({ figure, caption, diagram, focus, result, 
                 onClick={() => setView(id)}
                 className={`flex min-h-8 items-center gap-2 px-2 transition-colors duration-200 ${view === id ? "text-bone" : "text-mute hover-fine:hover:text-bone"}`}
               >
-                {id === "sim" ? <span className={`live-dot ${view === id ? "" : "opacity-30"}`} aria-hidden="true" /> : null}
+                {id === "primary" && primary!.kind === "Simulation" ? (
+                  <span className={`live-dot ${view === id ? "" : "opacity-30"}`} aria-hidden="true" />
+                ) : null}
                 {label}
               </button>
             ))}
           </span>
-        ) : null}
+        ) : (
+          <span className="shrink-0">{primary ? primary.kind : "Architecture"}</span>
+        )}
       </figcaption>
 
       <div className="showcase__canvas relative min-h-0 flex-1">
-        <div className={view === "sim" ? "absolute inset-0" : "hidden"}>{children}</div>
+        {primary ? <div className={view === "primary" ? "absolute inset-0" : "hidden"}>{primary.node}</div> : null}
         {diagram ? (
           <div className={view === "arch" ? "absolute inset-0 flex items-center justify-center p-4 md:p-8" : "hidden"}>
             <ArchitectureDiagram
@@ -76,13 +80,6 @@ export default function SystemFigure({ figure, caption, diagram, focus, result, 
           </div>
         ) : null}
       </div>
-
-      {result ? (
-        <p className="showcase__result">
-          <span className="t-label text-mute">Result</span>
-          <span>{result}</span>
-        </p>
-      ) : null}
     </figure>
   );
 }

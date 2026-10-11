@@ -1,6 +1,9 @@
-// Project titles are factual. Problem / architecture / implementation / result copy are
-// drafts describing what a system with this title involves — verify and edit each one.
-// No metrics are stated on purpose: add real numbers only if you can stand behind them.
+// Work: named case studies. Every fact here comes from the owner (brief, Oct 2026) or the résumé
+// (Muhammad_Abubakar_Lead_Blockchain_Engineer.docx). Never add a metric that isn't stated there.
+//
+// Five-part structure: what (plain) · problem · built (technical, behind "What I built") · result
+// (with `metrics` where they exist) · stack. `story` holds extra parts some studies need (the chain
+// split); an entry with no `body` is awaiting the owner and never renders in production.
 
 export type DiagramNode = {
   id: string;
@@ -18,123 +21,246 @@ export type DiagramEdge = {
   kind?: "request" | "reply";
 };
 
-export type StepKey = "problem" | "architecture" | "implementation" | "result";
+export type Diagram = {
+  caption: string;
+  cols: number;
+  rows: number;
+  nodes: DiagramNode[];
+  edges: DiagramEdge[];
+  /** Nodes drawn highlighted. Defaults to all. */
+  focus?: string[];
+};
 
-export type Step = {
-  key: StepKey;
-  body: string;
-  /** Node ids highlighted in the diagram while this step is active. */
-  focus: string[];
+export type Metric = { value: string; label: string };
+
+
+export type StoryPart = { label: string; body?: string };
+
+/**
+ * Who the work was delivered for. These are employer products, not personal projects — the brand
+ * and the product belong to the company; what is described here is the part Muhammad built.
+ */
+export type Delivery = {
+  /** The company the work was delivered at. */
+  org: string;
+  /** Role held while delivering it. */
+  role: string;
+  /** e.g. "Feb 2026 – present" */
+  period: string;
+  /** One sentence naming the company as owner and Muhammad's part in it. */
+  note: string;
 };
 
 export type Project = {
   id: string;
-  index: string;
+  /** Product or study name — the heading. */
   title: string;
+  /** What kind of thing it is, in a few words. */
+  kind: string;
+  /** Short mono tag for the case-study index. */
   domain: string;
-  /** First layer: what it does for a business, in words a non-engineer reads in one pass. */
-  plain: string;
-  /** Technical summary — shown under "Under the hood". [[term]] marks get glossary definitions. */
-  summary: string;
-  stack: string[];
-  diagram?: {
-    caption: string;
-    cols: number;
-    rows: number;
-    nodes: DiagramNode[];
-    edges: DiagramEdge[];
-  };
-  steps?: Step[];
-};
-
-export const stepLabels: Record<StepKey, string> = {
-  problem: "Problem",
-  architecture: "Architecture",
-  implementation: "Implementation",
-  result: "Result",
+  /** Where it was built (short label). */
+  org?: string;
+  /** Full attribution — who owns the product and what Muhammad delivered. */
+  delivery?: Delivery;
+  /** True when this study has its own page at /work/<id>. */
+  detail?: boolean;
+  /** Live product. */
+  live?: { url: string; label: string };
+  /** 1 · What it is — one plain sentence. */
+  what: string;
+  /** Headline numbers. Only figures the owner has stated. */
+  metrics?: Metric[];
+  /** 2 · The problem — what was hard or broken, plainly. */
+  problem?: string;
+  /** Extra narrative parts (chain split: symptoms, diagnosis, fix). Shown inside "What I built". */
+  story?: StoryPart[];
+  /** 3 · What I built — the technical substance. [[term]] marks get glossary definitions. */
+  built: string[];
+  /** 4 · The result. */
+  result: string;
+  /** Why it matters, when the result alone undersells it. */
+  matters?: string;
+  /** 5 · Stack. */
+  stack?: string[];
+  /** Research article ids (data/research.ts) that back this study up. */
+  articles?: string[];
+  diagram?: Diagram;
 };
 
 export const projects: Project[] = [
   {
-    id: "payments",
-    index: "01",
-    title: "Blockchain Payment Infrastructure",
-    domain: "Payments",
-    plain:
-      "Lets a business accept crypto on Bitcoin, Ethereum-style networks and TRON, and get one clear answer back for every payment: paid, or not yet.",
-    summary:
-      "Payment rails across Bitcoin, EVM networks and TRON: payment intents, on-chain detection, [[confirmation|confirmations]] tracking and merchant [[webhooks]] behind one API.",
-    stack: ["Node.js", "TypeScript", "Ethers.js", "TronWeb", "Bitcoin Core", "Firestore", "Webhooks"],
+    id: "silpre",
+    title: "SILPRE",
+    kind: "Crypto investment platform",
+    domain: "Investment platform",
+    org: "MicroSlush",
+    delivery: {
+      org: "MicroSlush",
+      role: "Backend Blockchain Developer",
+      period: "Feb 2026 – present",
+      note: "SILPRE is a MicroSlush product. I delivered its blockchain and backend layer — deposits, settlement, withdrawals and the admin APIs — as part of the team there; the platform and brand are MicroSlush’s.",
+    },
+    detail: true,
+    live: { url: "https://user.silpre.net", label: "user.silpre.net" },
+    what: "A crypto investment platform: people deposit crypto, earn returns on a fixed-term plan and withdraw. I built the blockchain and backend layer that moves the money.",
+    metrics: [
+      { value: "$600,000+", label: "active investment pool, reached within three months of launch" },
+      { value: "$340,000+", label: "paid out in investor returns" },
+      { value: "$40,000+", label: "processed in user withdrawals" },
+    ],
+    problem:
+      "Every deposit, return and withdrawal is real money on three blockchains, in five assets, often at the same moment. Two payouts racing each other, or a rounding slip between assets, is someone’s balance going wrong.",
+    built: [
+      "Multi-asset deposit and withdrawal services for USDS, USDT, USDC, BNB and ETH across BSC, Ethereum and TRON, with live CoinGecko price feeds for conversion.",
+      "Withdrawal and swap services on Firebase Cloud Functions with ethers.js and TronWeb.",
+      "ROI plan engines — 100-day, 12-month and group — with accrual, cancellation and payout scheduling.",
+      "Firestore transactions keep balance updates atomic under concurrent payouts.",
+      "A centralised admin-wallet pattern with per-asset decimal precision (6 for USDT/USDC, 18 for native tokens) to prevent rounding loss.",
+      "Admin APIs for users, roles, KYC verification, deposits, withdrawals and investment requests.",
+    ],
+    result: "Live in production, with settlement running automatically: returns and withdrawals paid on-chain.",
+    stack: ["Node.js", "TypeScript", "Express.js", "Firebase Cloud Functions", "Firestore", "ethers.js", "TronWeb", "BEP20 / ERC20 / TRC20"],
+    articles: ["eth-lifecycle"],
     diagram: {
-      caption: "Payment flow — request path above, settlement path below",
+      caption: "SILPRE — money in across the top, investors and admins below (simplified)",
       cols: 5,
       rows: 2,
       nodes: [
-        { id: "client", label: "Client", sub: "checkout", col: 0, row: 0 },
-        { id: "api", label: "Payment API", sub: "intents", col: 1, row: 0 },
-        { id: "state", label: "Payment state", sub: "Firestore", col: 2, row: 0 },
-        { id: "hooks", label: "Webhooks", sub: "signed, retried", col: 3, row: 0 },
-        { id: "merchant", label: "Merchant", sub: "backend", col: 4, row: 0 },
-        { id: "rpc", label: "RPC nodes", sub: "BTC · EVM · TRON", col: 0, row: 1 },
-        { id: "watchers", label: "Chain watchers", sub: "per network", col: 1, row: 1 },
-        { id: "confirm", label: "Confirmations", sub: "depth, reorgs", col: 2, row: 1 },
+        { id: "chains-in", label: "Deposits in", sub: "BSC · ETH · TRON", col: 0, row: 0 },
+        { id: "deposits", label: "Deposit service", sub: "ethers.js · TronWeb", col: 1, row: 0 },
+        { id: "ledger", label: "Balances", sub: "Firestore txns", col: 2, row: 0 },
+        { id: "roi", label: "ROI engine", sub: "accrual · payouts", col: 3, row: 0 },
+        { id: "wallet", label: "Admin wallet", sub: "per-asset decimals", col: 4, row: 0 },
+        { id: "investor", label: "Investor", sub: "web app", col: 0, row: 1 },
+        { id: "api", label: "Platform API", sub: "Express · Functions", col: 1, row: 1 },
+        { id: "prices", label: "Price feed", sub: "CoinGecko", col: 2, row: 1 },
+        { id: "admin", label: "Admin APIs", sub: "KYC · requests", col: 3, row: 1 },
+        { id: "chains-out", label: "Payouts out", sub: "BSC · ETH · TRON", col: 4, row: 1 },
       ],
       edges: [
-        { from: "client", to: "api" },
-        { from: "api", to: "state" },
-        { from: "state", to: "hooks" },
-        { from: "hooks", to: "merchant", kind: "reply" },
-        { from: "rpc", to: "watchers" },
-        { from: "watchers", to: "confirm" },
-        { from: "confirm", to: "state" },
+        { from: "chains-in", to: "deposits" },
+        { from: "deposits", to: "ledger" },
+        { from: "ledger", to: "roi" },
+        { from: "roi", to: "wallet" },
+        { from: "wallet", to: "chains-out", kind: "reply" },
+        { from: "investor", to: "api" },
+        { from: "api", to: "ledger" },
+        { from: "prices", to: "ledger" },
+        { from: "admin", to: "roi" },
       ],
     },
-    steps: [
-      {
-        key: "problem",
-        body: "Accepting payments on Bitcoin, EVM chains and TRON means three transaction models, three sets of confirmation rules and three ways to fail. The product needs one answer: has this payment settled?",
-        focus: ["client", "rpc"],
-      },
-      {
-        key: "architecture",
-        body: "A payment API creates intents and deposit addresses. Per-network watchers read blocks over [[RPC]]. A confirmation engine tracks depth and [[reorgs|reorg]] and moves each payment through an explicit state machine. Webhooks report every transition.",
-        focus: ["client", "api", "state", "hooks", "merchant", "rpc", "watchers", "confirm"],
-      },
-      {
-        key: "implementation",
-        body: "TypeScript services. Ethers.js scans EVM blocks and token transfer events, TronWeb handles [[TRC-20]], Bitcoin Core RPC tracks [[UTXOs|utxo]]. Payment state lives in Firestore. Webhook delivery is signed, retried with backoff and [[idempotent]].",
-        focus: ["rpc", "watchers", "confirm", "state"],
-      },
-      {
-        key: "result",
-        body: "One API and one payment state model in front of several chains. Integrators get a settled event and never need to know which network a payment arrived on.",
-        focus: ["client", "api", "state", "hooks", "merchant"],
-      },
-    ],
   },
   {
-    id: "bitcoin-fork",
-    index: "02",
-    title: "Bitcoin Fork Infrastructure",
-    domain: "Nodes",
-    plain:
-      "Everything needed to run a new Bitcoin-based network: servers that start up identically every time, and a safe front door for the apps built on it.",
-    summary:
-      "Infrastructure for a Bitcoin Core–derived network: reproducible node builds, seed and full nodes, and an authenticated API between the chain and the applications on top.",
-    stack: ["Bitcoin Core", "Docker", "RPC", "Node.js", "APIs"],
+    id: "swap21",
+    title: "SWAP21",
+    kind: "Centralized crypto exchange",
+    domain: "Exchange",
+    org: "OVEX Technologies",
+    delivery: {
+      org: "OVEX Technologies",
+      role: "Blockchain Backend Lead",
+      period: "Jul 2025 – present",
+      note: "SWAP21 is operated by OVEX Technologies. I lead the blockchain team that builds and runs its chain, custodial wallet and node layer; the exchange and brand are OVEX’s.",
+    },
+    detail: true,
+    live: { url: "https://swap21.com", label: "swap21.com" },
+    what: "A crypto exchange that runs on its own Bitcoin-based blockchain — its own nodes, block explorer and custodial wallets. I lead the team that builds and runs that layer.",
+    problem:
+      "An exchange on its own chain has no provider to fall back on. Every deposit has to be noticed, every withdrawal signed, and every node kept in agreement — by the team, around the clock.",
+    built: [
+      "The blockchain layer end to end: wallet generation, deposit detection, transaction flow and withdrawal signing against the fork’s nodes.",
+      "The network’s block explorer, and a customised Bitcoin Core Qt wallet for transaction tracking and wallet management.",
+      "Full nodes across several Ubuntu servers, converted to systemd units with peer-maintenance scripts and timers for unattended recovery.",
+      "Deposit-monitoring workers, and PostgreSQL connection exhaustion eliminated under sustained load.",
+      "Mining and consensus parameters tuned for faster confirmations.",
+    ],
+    result: "A live exchange on a chain the team operates itself — including bringing it back from a consensus split.",
+    stack: ["Bitcoin Core (C++)", "Python", "Django", "Celery", "PostgreSQL", "Redis", "Ubuntu", "systemd", "Nginx"],
+    articles: ["btc-lifecycle"],
+    diagram: {
+      caption: "SWAP21 — withdrawals across the top, deposits return below (simplified)",
+      cols: 5,
+      rows: 2,
+      nodes: [
+        { id: "trader", label: "Trader", sub: "exchange", col: 0, row: 0 },
+        { id: "backend", label: "Exchange API", sub: "Django · Celery", col: 1, row: 0 },
+        { id: "db", label: "PostgreSQL", sub: "balances", col: 2, row: 0 },
+        { id: "signer", label: "Signer", sub: "custodial withdrawals", col: 3, row: 0 },
+        { id: "nodes", label: "Fork nodes", sub: "Bitcoin Core fork", col: 4, row: 0 },
+        { id: "wallets", label: "Deposit wallets", sub: "address generation", col: 1, row: 1 },
+        { id: "monitor", label: "Deposit workers", sub: "detect · confirm", col: 3, row: 1 },
+        { id: "peers", label: "Node network", sub: "systemd · timers", col: 4, row: 1 },
+      ],
+      edges: [
+        { from: "trader", to: "backend" },
+        { from: "backend", to: "db" },
+        { from: "db", to: "signer" },
+        { from: "signer", to: "nodes" },
+        { from: "nodes", to: "peers" },
+        { from: "peers", to: "monitor", kind: "reply" },
+        { from: "monitor", to: "db", kind: "reply" },
+        { from: "backend", to: "wallets" },
+      ],
+    },
+  },
+  {
+    id: "chain-split",
+    title: "The live chain split",
+    kind: "Production incident",
+    domain: "Consensus",
+    org: "OVEX Technologies · SWAP21",
+    delivery: {
+      org: "OVEX Technologies",
+      role: "Blockchain Backend Lead",
+      period: "Jul 2025 – present",
+      note: "An incident on the SWAP21 network, operated by OVEX Technologies. I diagnosed the split and restored consensus across the exchange nodes.",
+    },
+    what: "The exchange’s blockchain split in two: part of the network followed one history, part followed another. Until it was resolved, nobody could say which deposits were real or which balances to trust. I diagnosed the split and brought every exchange node back onto one chain.",
+    // TODO(owner): symptoms, diagnosis and fix. Empty parts don't render in production.
+    story: [
+      { label: "Symptoms" },
+      { label: "How I diagnosed it" },
+      { label: "The fix" },
+    ],
+    built: [],
+    result: "Consensus restored across the exchange nodes.",
+    matters:
+      "This is what separates someone who has run a chain in production from someone who has read about one.",
+  },
+  {
+    id: "forks",
+    title: "Bitcoin & EVM L1 forks",
+    kind: "Custom blockchain networks",
+    domain: "L1 forks",
+    what: "New blockchains built from Bitcoin’s and Ethereum’s code — designed from the first block, built for every major operating system, and run as real networks.",
+    problem:
+      "A fork is more than a renamed binary. It needs its own rules from block zero, nodes that can find each other, isolation from the network it was copied from, and builds that come out the same every time.",
+    built: [
+      "BTC1: a Bitcoin Core v22–derived network powering live custodial exchange backends.",
+      "Genesis block, premine window and emission schedule on a post-v29 Bitcoin Core (CMake) base, keeping a 21M supply cap on Bitcoin’s halving curve.",
+      "chainparams and consensus configuration, with full isolation from Bitcoin mainnet through custom magic bytes, P2P ports and removal of upstream DNS seeds.",
+      "A DNS seeder on AWS EC2 with Route 53, and peer discovery hardened with chainparams-level [[seed|seed node]] literals after an upstream seed outage.",
+      "Reproducible Docker builds, plus cross-platform node and Qt wallet builds for Linux/WSL2, Windows (MinGW via depends) and macOS (Homebrew Qt 5.15).",
+      "An EVM L1 (chainId 5356) on Geth v1.10.26 proof-of-work, with Uniswap V3 contracts deployed for on-chain liquidity.",
+    ],
+    result:
+      "Networks that start from a designed first block, find their peers, stay isolated from Bitcoin mainnet, and build the same way on every platform.",
+    stack: ["Bitcoin Core (C++)", "CMake", "MinGW", "Qt", "Docker", "AWS EC2", "Route 53", "Geth", "Uniswap V3"],
+    articles: ["min-chain-work", "cross-compile"],
     diagram: {
       caption: "Fork infrastructure — build pipeline below, application access above",
       cols: 5,
       rows: 2,
       nodes: [
-        { id: "apps", label: "Apps", sub: "wallets, services", col: 0, row: 0 },
+        { id: "apps", label: "Apps", sub: "exchange, wallets", col: 0, row: 0 },
         { id: "gateway", label: "API layer", sub: "authenticated", col: 1, row: 0 },
         { id: "rpc", label: "Node RPC", sub: "JSON-RPC", col: 2, row: 0 },
         { id: "node", label: "Full node", sub: "forked Core", col: 3, row: 0 },
-        { id: "peers", label: "P2P network", sub: "peers", col: 4, row: 0 },
-        { id: "fork", label: "Core fork", sub: "chain params", col: 2, row: 1 },
+        { id: "peers", label: "P2P network", sub: "isolated", col: 4, row: 0 },
+        { id: "fork", label: "Core fork", sub: "chainparams", col: 2, row: 1 },
         { id: "image", label: "Docker image", sub: "reproducible", col: 3, row: 1 },
-        { id: "seeds", label: "Seed nodes", sub: "bootstrap", col: 4, row: 1 },
+        { id: "seeds", label: "DNS seeder", sub: "EC2 · Route 53", col: 4, row: 1 },
       ],
       edges: [
         { from: "apps", to: "gateway" },
@@ -147,39 +273,24 @@ export const projects: Project[] = [
         { from: "seeds", to: "peers" },
       ],
     },
-    steps: [
-      {
-        key: "problem",
-        body: "A Bitcoin-derived chain needs more than a binary. Nodes have to be built the same way every time, peers have to find each other, and applications need access without talking to raw node RPC.",
-        focus: ["node", "peers", "apps"],
-      },
-      {
-        key: "architecture",
-        body: "The forked Core codebase carries the network's chain parameters. It builds into one Docker image that runs both seed nodes and full nodes. Applications reach the chain through an API layer in front of node RPC.",
-        focus: ["apps", "gateway", "rpc", "node", "peers", "fork", "image", "seeds"],
-      },
-      {
-        key: "implementation",
-        body: "Network parameters are set in the Core-derived source. Nodes are containerised with Docker so every deployment is identical. [[Seed nodes|seed node]] bootstrap peer discovery, and RPC stays private behind the API.",
-        focus: ["fork", "image", "node", "seeds"],
-      },
-      {
-        key: "result",
-        body: "Node deployments that can be reproduced, and a clean boundary between the chain and the wallets and services built on it.",
-        focus: ["apps", "gateway", "rpc", "node"],
-      },
-    ],
   },
   {
     id: "evm-wallets",
-    index: "03",
-    title: "EVM Wallet Infrastructure",
+    title: "EVM wallet infrastructure",
+    kind: "Wallet services",
     domain: "Wallets",
-    plain:
-      "Wallets a product controls from code — create addresses, send funds, track every transfer — across four networks, without ever exposing the keys.",
-    summary:
-      "Wallet services for Ethereum, BSC, Base and Polygon: key derivation, isolated signing, [[nonce]] and [[gas]] management, broadcasting and receipt tracking behind one interface.",
-    stack: ["Ethers.js", "Node.js", "TypeScript", "Ethereum", "BSC", "Base", "Polygon"],
+    what: "Wallets a product controls from code — create addresses, send funds, track every transfer — across four networks, without ever exposing the keys.",
+    problem:
+      "Products need to create addresses, move funds and know what happened on several EVM chains, without leaking keys or losing track of [[nonces|nonce]] when transactions stall.",
+    built: [
+      "A wallet API accepts intents; a builder prices [[gas]] and assigns nonces per chain.",
+      "Per-address nonce queues, so concurrent sends never collide.",
+      "Keys derive from [[HD seeds|hd wallet]], and signing happens in an isolated signer, apart from request handling.",
+      "Ethers.js providers per network with fallback RPC endpoints; a broadcaster submits and a tracker follows receipts to [[finality]].",
+    ],
+    result: "One wallet interface across Ethereum, BSC, Base and Polygon, so adding a network is configuration rather than a new code path.",
+    stack: ["ethers.js", "Node.js", "TypeScript", "Ethereum", "BSC", "Base", "Polygon"],
+    articles: ["eth-lifecycle"],
     diagram: {
       caption: "Wallet pipeline — transaction path above, key path below",
       cols: 5,
@@ -204,39 +315,28 @@ export const projects: Project[] = [
         { from: "chains", to: "receipts", kind: "reply" },
       ],
     },
-    steps: [
-      {
-        key: "problem",
-        body: "Products need to create addresses, move funds and know what happened, on several EVM chains, without leaking keys or losing track of [[nonces|nonce]] when transactions stall.",
-        focus: ["api", "keys", "chains"],
-      },
-      {
-        key: "architecture",
-        body: "A wallet API accepts intents. A builder prices gas and assigns nonces per chain. Keys derive from [[HD seeds|hd wallet]] and signing happens in an isolated signer. A broadcaster submits and a tracker follows receipts to [[finality]].",
-        focus: ["app", "api", "builder", "broadcast", "chains", "keys", "signer", "receipts"],
-      },
-      {
-        key: "implementation",
-        body: "Ethers.js providers per network with fallback RPC endpoints. Per-address nonce queues so concurrent sends never collide. Chain-specific gas strategies, and signing kept apart from request handling.",
-        focus: ["builder", "keys", "signer", "broadcast"],
-      },
-      {
-        key: "result",
-        body: "One wallet interface across Ethereum, BSC, Base and Polygon, so adding a network is configuration rather than a new code path.",
-        focus: ["app", "api", "chains", "receipts"],
-      },
-    ],
   },
   {
     id: "real-estate",
-    index: "04",
-    title: "Web3 Real Estate Marketplace",
+    title: "Web3 real estate marketplace",
+    kind: "Property tokenization",
     domain: "Marketplace",
-    plain:
-      "A property marketplace where who-owns-what is recorded on a blockchain anyone can check, while browsing stays as fast as any ordinary website.",
-    summary:
-      "A property marketplace where listing and transfer state is anchored in smart contracts, while search, media and metadata stay fast off-chain.",
-    stack: ["Solidity", "Ethers.js", "Next.js", "React", "Firebase", "Tailwind CSS"],
+    org: "OVEX Technologies",
+    delivery: {
+      org: "OVEX Technologies",
+      role: "Blockchain Backend Lead",
+      period: "Jul 2025 – present",
+      note: "Delivered at OVEX Technologies: I built the tokenization contracts and the indexer behind the marketplace.",
+    },
+    what: "A property marketplace where who-owns-what is recorded on a blockchain anyone can check, while browsing stays as fast as any ordinary website.",
+    problem:
+      "Listings and ownership records usually live in separate systems, so buyers can’t check the state of what they’re buying. Putting everything on-chain makes search and media slow and expensive.",
+    built: [
+      "Real-estate tokenization contracts in Solidity with Hardhat: listing and transfer state live on-chain, with property purchases signed through MetaMask.",
+      "Contracts emit an event for every state change; an indexer replays those events into Firestore, so search and media stay fast and the off-chain view can always be rebuilt from the chain.",
+    ],
+    result: "Listings whose sale state can be checked on-chain, with browsing that feels like any other web app.",
+    stack: ["Solidity", "Hardhat", "ethers.js", "MetaMask", "Next.js", "React", "Firestore"],
     diagram: {
       caption: "Marketplace — on-chain path above, off-chain index below",
       cols: 5,
@@ -244,7 +344,7 @@ export const projects: Project[] = [
       nodes: [
         { id: "user", label: "Buyer / seller", sub: "browser", col: 0, row: 0 },
         { id: "app", label: "Next.js app", sub: "listings UI", col: 1, row: 0 },
-        { id: "wallet", label: "Wallet", sub: "Ethers.js", col: 2, row: 0 },
+        { id: "wallet", label: "Wallet", sub: "MetaMask", col: 2, row: 0 },
         { id: "contracts", label: "Contracts", sub: "Solidity", col: 3, row: 0 },
         { id: "chain", label: "EVM chain", sub: "settlement", col: 4, row: 0 },
         { id: "api", label: "API", sub: "search, media", col: 1, row: 1 },
@@ -262,49 +362,8 @@ export const projects: Project[] = [
         { from: "api", to: "store" },
       ],
     },
-    steps: [
-      {
-        key: "problem",
-        body: "Listings and ownership records usually live in separate systems, so buyers can't check the state of what they're buying. Putting everything on-chain makes search and media slow and expensive.",
-        focus: ["user", "contracts", "store"],
-      },
-      {
-        key: "architecture",
-        body: "Solidity contracts hold listing and transfer state. The Next.js app signs through the user's wallet. An indexer follows contract events into Firestore, and the API serves search and media from there.",
-        focus: ["user", "app", "wallet", "contracts", "chain", "api", "store", "indexer"],
-      },
-      {
-        key: "implementation",
-        body: "Contracts emit an event for every state change. The indexer replays those events into Firestore documents, so the off-chain view can always be rebuilt from the chain.",
-        focus: ["contracts", "chain", "indexer", "store"],
-      },
-      {
-        key: "result",
-        body: "Listings whose sale state can be checked on-chain, with browsing that feels like any other web app.",
-        focus: ["user", "app", "api", "store", "wallet"],
-      },
-    ],
-  },
-  {
-    id: "contracts",
-    index: "05",
-    title: "Smart Contract Systems",
-    domain: "Contracts",
-    plain:
-      "Programs on the blockchain that enforce the rules of a deal, and the backend that keeps a product in step with them.",
-    summary:
-      "Solidity contracts for [[EVM]] networks, and the backend integrations that read their state, listen to their events and send transactions to them.",
-    stack: ["Solidity", "Ethers.js", "Ethereum", "BSC", "Base", "Polygon"],
-  },
-  {
-    id: "backends",
-    index: "06",
-    title: "Blockchain Backend Systems",
-    domain: "Backends",
-    plain:
-      "The services behind the scenes that watch blockchains and tell a product — quickly and reliably — what just happened.",
-    summary:
-      "Services between chains and products: indexing events, tracking transactions through their lifecycle, and exposing it all through APIs and webhooks.",
-    stack: ["Node.js", "TypeScript", "Express", "RPC", "Webhooks", "Docker"],
   },
 ];
+
+/** A story part is shown only once the owner has written it (dev shows the gap). */
+export const isWritten = (p: StoryPart) => !!p.body?.trim();
